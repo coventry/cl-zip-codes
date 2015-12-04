@@ -2,4 +2,17 @@ In the free zip code location DB provided at http://www.unitedstateszipcodes.org
 
 The database contains one clearly inaccurate coordinate, for the Pentagon zip code, so there may be others.  The Pentagon one stands out because the coordinate is over 1,900 miles from the nearest centroid.
 
-The final result is in `more-cl-zipcodes.txt`.  The calculation is in `complete_cl_assignments.py`.
+The final result is in `more-cl-zipcodes.txt`.  The calculation is in
+`complete_cl_assignments.py`.
+
+* Building the data
+
+
+Building the data
+=================
+
+0) pip install zip-code-radius
+1) Download the csv database mentioned above and the [[https://dl.dropboxusercontent.com/u/17180596/LookupCraigsZip2010.txt][CL data]].
+2) Run make_zipstate.py
+3) Run parse_cl_data.py
+4) 

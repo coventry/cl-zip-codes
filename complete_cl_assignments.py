@@ -1,6 +1,11 @@
-import csv, copy
+import csv, copy, itertools, sys, os
 from zip_code_radius import distance, quadtree, zip_code
-from EventCounter.data import cl
+
+path = os.path.expanduser('~/bernie/data/zips/')
+if path not in sys.path:
+    sys.path.append(path)
+import cl
+assert cl.__file__.startswith(path)
 
 # Set of abbreviations for states & territories in or near CONUS.
 # Taken from http://www.50states.com/abbreviations.htm
@@ -49,26 +54,56 @@ cartesianzips = {}
 for z, (lat, lon) in ziplocations.iteritems():
     cartesianzips[z] = cartesian(lat, lon)
 
-centroids = dict((clr, scipy.mean(scipy.array([cartesianzips[z] for z in zips]), axis=0))
-                 for clr, zips in cl.clzip.items())
+# Find the primary state for each region, group regions by state
+zipcounts = ddict(lambda: ddict(int))
+for _zip, state in states.items():
+    region = cl.zipcl.get(_zip, None)
+    if region is not None:
+        zipcounts[region][state] += 1
+region_state = {}
+for region, counts in zipcounts.items():
+    region_state[region] = max(counts, key=counts.get)
+state_regions = ddict(list)
+for region, state in region_state.items():
+    state_regions[state].append(region)
+assert all(state_regions[state] for state in  cl.conus_states), \
+       'All states have at least one region'
 
-missing = set(ziplocations) - set(cl.zipcl)
-print len(missing) # 9,000
-
+# The closest region for unassigned zips:
 closests = {}
-for z in list(missing)[:]:
-    cz = cartesian(*ziplocations[z])
-    closests[z] = min((scipy.linalg.norm(cz - c), clr) for clr, c in centroids.items())
-    assert closests[z][0] < 0.5
+distances = {} # For debugging
 
-print max(closests)    
+for state, regions in state_regions.items():
+    # Group the assigned zips in the state by region
+    region_zips = dict((region, set(z for z in cl.clzip[region]
+                                    if cl.ziploc[z][0] == state))
+                       for region in regions)
+    # Get the centroids of the state-restricted regions
+    centroids = dict((clr, scipy.mean(scipy.array([cartesianzips[z] for z in zips]), axis=0))
+                     for clr, zips in region_zips.items())
+    # Get unassigned zips in the state
+    allzips = set(z for z, s in states.items() if s == state)
+    missing = allzips - set(itertools.chain(*region_zips.values()))
+    assert missing
+    # For each unassigned zip, find region with the closest centroid
+    for z in missing:
+        dist = lambda r: scipy.linalg.norm(cartesianzips[z] - centroids[r])
+        closests[z] = min(centroids, key=dist)
+        assert cl.ziploc[z][0] == region_state[closests[z]]
+        distances[z] = dist(closests[z])
+        assert distances[z] < 0.5
 
-all = copy.deepcopy(cl.clzip)
-for z, (d, clr) in closests.items():
-    all[clr].append(z)
+print len(closests) # 9,000
+
+worstzip = max(closests, key=distances.get)
+print worstzip, cl.ziploc[worstzip], closests[worstzip], distances[worstzip]
+
+allzips = copy.deepcopy(cl.clzip)
+for z, clr in closests.items():
+    allzips[clr].append(z)
 
 out = open('~/bernie/data/zips/more-cl-zipcodes.txt', 'w')
-for clr, zips in all.items():
+for clr, zips in allzips.items():
     for z in zips:
         print >> out, clr, z
 out.close()
