@@ -15,4 +15,4 @@ Building the data
 1) Download the csv database mentioned above and the [[https://dl.dropboxusercontent.com/u/17180596/LookupCraigsZip2010.txt][CL data]].
 2) Run make_zipstate.py
 3) Run parse_cl_data.py
-4) 
+4) Run complete_cl_assignments.py
