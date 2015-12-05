@@ -98,12 +98,17 @@ print len(closests) # 9,000
 worstzip = max(closests, key=distances.get)
 print worstzip, cl.ziploc[worstzip], closests[worstzip], distances[worstzip]
 
-allzips = copy.deepcopy(cl.clzip)
+allzips = dict(
+    (r, [z for  z in zips if states[z] == region_state[r]])
+    for r, zips in cl.clzip.items())
 for z, clr in closests.items():
     allzips[clr].append(z)
 
 out = open('~/bernie/data/zips/more-cl-zipcodes.txt', 'w')
+seen = set()
 for clr, zips in allzips.items():
     for z in zips:
+        assert z not in seen
         print >> out, clr, z
+        seen.add(z)
 out.close()

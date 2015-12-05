@@ -8,6 +8,7 @@ for l in open(os.path.join(datapath, 'zipstate.txt')):
     l = l.split()
     zip, state = l[:2]
     county = ' '.join(l[2:]).replace(' County', '').lower()
+    county = county.replace(' ', '')
     ziploc[zip] = state, county
 
 zipcl = {}
